@@ -1,5 +1,16 @@
 import { z } from "zod";
-import { describe } from "zod/v4/core";
+
+const parseJsonField = (value: unknown) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+};
 
 const blogCreate = z.object({
   title: z.string().min(1),
@@ -11,7 +22,7 @@ const blogCreate = z.object({
   publishedDate: z.coerce.date().optional(),
 
   seo: z.preprocess(
-    (val) => (typeof val === "string" ? JSON.parse(val) : val),
+    parseJsonField,
     z.object({
       title: z.string().min(1),
       desc: z.string().min(1),
@@ -24,7 +35,7 @@ const blogCreate = z.object({
 const blogUpdate = blogCreate.partial().extend({
   id: z.string().min(1),
   seo: z.preprocess(
-    (val) => (typeof val === "string" ? JSON.parse(val) : val),
+    parseJsonField,
     z
       .object({
         id: z.string().optional(),

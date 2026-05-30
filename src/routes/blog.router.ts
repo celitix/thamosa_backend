@@ -22,7 +22,13 @@ router.post(
 );
 router.get("/", all);
 router.get("/:id", byId);
-router.put("/update", checkIsAuth, upload.single("image"), validateBody(blogUpdate), update);
+router.put(
+  "/update",
+  checkIsAuth,
+  upload.single("image"),
+  validateBody(blogUpdate),
+  update,
+);
 router.delete("/delete/:id", checkIsAuth, deleteB);
 
 export default router;

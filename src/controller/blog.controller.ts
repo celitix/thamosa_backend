@@ -3,6 +3,50 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+import { BlogStatus } from "../../generated/prisma/enums";
+
+const blogListSelect = {
+  id: true,
+  title: true,
+  slug: true,
+  shortDesc: true,
+  category: true,
+  publishedDate: true,
+  image: true,
+  status: true,
+} as const;
+
+const blogDetailInclude = {
+  seo: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      keywords: true,
+    },
+  },
+} as const;
+
+const parsePositiveInt = (value: unknown, fallback: number, max?: number) => {
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return max ? Math.min(parsed, max) : parsed;
+};
+
+const getBlogStatus = (type: string) => {
+  if (type === "published") {
+    return BlogStatus.PUBLISHED;
+  }
+
+  if (type === "draft") {
+    return BlogStatus.DRAFT;
+  }
+
+  return undefined;
+};
 
 const create = async (req: Request, res: Response) => {
   try {
@@ -22,42 +66,43 @@ const create = async (req: Request, res: Response) => {
       return responseHandler(
         res,
         { message: "No file uploaded", status: false },
-        201,
+        400,
       );
     }
 
-    const isBlogExist = await prisma.blog.findUnique({ where: { slug } });
+    const isBlogExist = await prisma.blog.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
 
     if (isBlogExist) {
+      await deleteFile(req.file.path);
       return responseHandler(
         res,
         { message: "Blog already exist", status: false },
-        201,
+        409,
       );
     }
 
-    prisma.$transaction(async (tx) => {
-      const seoData = await tx.seo.create({
-        data: {
-          title: seo.title,
-          description: seo.desc,
-          keywords: seo.keywords,
+    await prisma.blog.create({
+      data: {
+        title,
+        slug,
+        shortDesc,
+        content,
+        category,
+        tags,
+        publishedDate,
+        status: status.toUpperCase(),
+        image: req.file.path,
+        seo: {
+          create: {
+            title: seo.title,
+            description: seo.desc,
+            keywords: seo.keywords,
+          },
         },
-      });
-      await tx.blog.create({
-        data: {
-          title,
-          slug,
-          shortDesc,
-          content,
-          category,
-          tags,
-          publishedDate,
-          seoId: seoData.id,
-          status: status.toUpperCase(),
-          image: req.file!.path,
-        },
-      });
+      },
     });
     return responseHandler(
       res,
@@ -65,48 +110,36 @@ const create = async (req: Request, res: Response) => {
       201,
     );
   } catch (e: any) {
+    if (req.file?.path) {
+      await deleteFile(req.file.path);
+    }
     errorHandler(e.message);
   }
 };
 
 const all = async (req: Request, res: Response) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const orderBy = (req.query.orderBy as string) || "desc";
+    const page = parsePositiveInt(req.query.page, 1);
+    const limit = parsePositiveInt(req.query.limit, 10, 100);
+    const orderBy = req.query.orderBy === "asc" ? "asc" : "desc";
     const type = (req.query.type as string) || "all";
     const role = (req.query.role as string) || "non-admin";
+    const status = getBlogStatus(type);
+    const where = status ? { status } : {};
 
-    let where = {};
-    if (type == "published") {
-      where = {
-        status: "PUBLISHED",
-      };
-    }
-
-    if (type == "draft") {
-      where = {
-        status: "DRAFT",
-      };
-    }
-
-    const recentBlogs = await prisma.blog.findMany({
-      where,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        shortDesc: true,
-        category: true,
-        publishedDate: true,
-        image: true,
-        status: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 2,
-    });
+    const [recentBlogs, totalBlogLength] = await Promise.all([
+      prisma.blog.findMany({
+        where,
+        select: blogListSelect,
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      }),
+      prisma.blog.count({
+        where,
+      }),
+    ]);
 
     let whereNot = {};
 
@@ -123,25 +156,12 @@ const all = async (req: Request, res: Response) => {
         ...where,
         ...whereNot,
       },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        shortDesc: true,
-        category: true,
-        publishedDate: true,
-        image: true,
-        status: true,
-      },
+      select: blogListSelect,
       skip: (page - 1) * limit,
       take: limit,
       orderBy: {
-        createdAt: orderBy === "asc" ? "asc" : "desc",
+        createdAt: orderBy,
       },
-    });
-
-    const totalBlogLength = await prisma.blog.count({
-      where,
     });
 
     return responseHandler(
@@ -158,7 +178,7 @@ const all = async (req: Request, res: Response) => {
           limit,
         },
       },
-      201,
+      200,
     );
   } catch (e: any) {
     errorHandler(e.message);
@@ -181,16 +201,7 @@ const byId = async (req: Request, res: Response) => {
 
     const isBlogExist = await prisma.blog.findUnique({
       where: { slug: id },
-      include: {
-        seo: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            keywords: true,
-          },
-        },
-      },
+      include: blogDetailInclude,
     });
 
     if (!isBlogExist) {
@@ -203,7 +214,7 @@ const byId = async (req: Request, res: Response) => {
     return responseHandler(
       res,
       { message: "Blog fetched successfully", status: true, blog: isBlogExist },
-      201,
+      200,
     );
   } catch (e: any) {
     errorHandler(e.message);
@@ -214,9 +225,18 @@ const update = async (req: Request, res: Response) => {
   try {
     const { id: slug, seo, ...rest } = req.body;
 
-    const isBlogExist = await prisma.blog.findUnique({ where: { slug } });
+    const isBlogExist = await prisma.blog.findUnique({
+      where: { slug },
+      select: {
+        image: true,
+        seoId: true,
+      },
+    });
 
     if (!isBlogExist) {
+      if (req.file?.path) {
+        await deleteFile(req.file.path);
+      }
       return responseHandler(
         res,
         { message: "Blog not found", status: false },
@@ -227,8 +247,12 @@ const update = async (req: Request, res: Response) => {
     if (rest.slug && rest.slug !== slug) {
       const isSlugTaken = await prisma.blog.findUnique({
         where: { slug: rest.slug },
+        select: { id: true },
       });
       if (isSlugTaken) {
+        if (req.file?.path) {
+          await deleteFile(req.file.path);
+        }
         return responseHandler(
           res,
           { message: "Slug is already in use by another blog", status: false },
@@ -246,6 +270,9 @@ const update = async (req: Request, res: Response) => {
     const seoId = seo?.id || isBlogExist.seoId;
 
     if (shouldUpdateSeo && seo?.id && seo.id !== isBlogExist.seoId) {
+      if (req.file?.path) {
+        await deleteFile(req.file.path);
+      }
       return responseHandler(
         res,
         { message: "SEO does not belong to this blog", status: false },
@@ -254,6 +281,9 @@ const update = async (req: Request, res: Response) => {
     }
 
     if (shouldUpdateSeo && !seoId) {
+      if (req.file?.path) {
+        await deleteFile(req.file.path);
+      }
       return responseHandler(
         res,
         { message: "Seo id is required", status: false },
@@ -300,9 +330,12 @@ const update = async (req: Request, res: Response) => {
     return responseHandler(
       res,
       { message: "Blog updated successfully", status: true },
-      201,
+      200,
     );
   } catch (e: any) {
+    if (req.file?.path) {
+      await deleteFile(req.file.path);
+    }
     errorHandler(e.message);
   }
 };
@@ -319,7 +352,12 @@ const deleteB = async (req: Request, res: Response) => {
       );
     }
 
-    const isBlogExist = await prisma.blog.findUnique({ where: { id } });
+    const isBlogExist = await prisma.blog.findUnique({
+      where: { id },
+      select: {
+        image: true,
+      },
+    });
 
     if (!isBlogExist) {
       return responseHandler(
@@ -335,8 +373,6 @@ const deleteB = async (req: Request, res: Response) => {
       },
     });
 
-    await deleteFile(isBlogExist.image);
-
     if (!isDelete) {
       return responseHandler(
         res,
@@ -344,10 +380,13 @@ const deleteB = async (req: Request, res: Response) => {
         400,
       );
     }
+
+    await deleteFile(isBlogExist.image);
+
     return responseHandler(
       res,
       { message: "Blog deleted successfully", status: true },
-      201,
+      200,
     );
   } catch (e: any) {
     errorHandler(e.message);
