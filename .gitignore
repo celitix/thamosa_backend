@@ -1,0 +1,14 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+/generated/prisma
+todo.txt
+dist/
+digital.postman_collection_*
+uploads/
+
+/public/data.txt
+/public/bookDemo.txt
+/public/bookDemofb.txt
+/logs/

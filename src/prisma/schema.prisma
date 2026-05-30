@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// model User {
+//   id    String @id @default(uuid())
+//   name  String
+//   email String @unique
+// }
+
+// model ContactEnquiry {
+//   id          String  @id @default(uuid())
+//   firstName   String  @map("first_name")
+//   lastName    String  @map("last_name")
+//   email       String
+//   mobile      String
+//   companyName String  @map("company_name")
+//   service     String
+//   message     String  @db.Text
+//   source      String? @default("contact")
+
+//   utmData   Json?
+//   createdAt DateTime @default(now()) @map("created_at")
+
+//   @@map("contact_enquiries")
+// }
+
+// model CarreerEnquiry {
+//   id          String   @id @default(uuid())
+//   firstName   String   @map("first_name")
+//   lastName    String   @map("last_name")
+//   email       String
+//   mobile      String
+//   designation String
+//   expInYears  String   @map("experience_in_years")
+//   jobTitle    String
+//   resumeUrl   String
+//   message     String?  @db.Text
+//   createdAt   DateTime @default(now()) @map("created_at")
+
+//   @@map("carreer_enquiries")
+// }
+
+model Otp {
+  id        String    @id @default(uuid())
+  mobile    String
+  otp       String
+  expiry    DateTime
+  createdAt DateTime  @default(now()) @map("created_at")
+  status    OtpStatus @default(GENRERATED)
+}
+
+model Users {
+  id        String   @id @default(uuid())
+  mobile    String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Blog {
+  id            String     @id @default(uuid())
+  title         String
+  slug          String     @unique
+  shortDesc     String
+  content       String     @db.LongText
+  category      String
+  tags          String
+  publishedDate DateTime?
+  seoId         String
+  status        BlogStatus @default(DRAFT)
+  image         String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  seo Seo @relation(fields: [seoId], references: [id], onDelete: Cascade)
+
+  @@map("blogs")
+}
+
+model Seo {
+  id          String @id @default(uuid())
+  title       String
+  description String
+  keywords    String
+  blogs       Blog[]
+}
+
+// model PricingSMS {
+//   id                  String   @id @default(uuid())
+//   region              String
+//   country             String
+//   operator            String
+//   network             String?
+//   ccCode              String?
+//   mcc                 String?
+//   mnc                 String?
+//   priceUSD            Float?
+//   routeType           String?
+//   dynamicAlphanumeric Boolean?
+//   dynamicShortcode    Boolean?
+//   dynamicNumeric      Boolean?
+//   deliveryReport      Boolean?
+//   remarks             String?  @db.Text
+
+//   createdAt DateTime @default(now()) @map("created_at")
+
+//   @@index([country])
+//   @@index([region])
+//   @@map("pricing_sms")
+// }
+
+// model WhatsappPricing {
+//   id                  Int      @id @default(autoincrement())
+//   market              String   @db.VarChar(100)
+//   currency            String   @db.VarChar(10)
+//   marketing           Decimal? @db.Decimal(10, 4)
+//   utility             Decimal? @db.Decimal(10, 4)
+//   authentication      Decimal? @db.Decimal(10, 4)
+//   authentication_intl Decimal? @db.Decimal(10, 4)
+//   service             Decimal? @db.Decimal(10, 4)
+//   source_file         String?
+//   created_at          DateTime @default(now())
+//   updated_at          DateTime @updatedAt
+
+//   @@unique([market, currency])
+//   @@map("whatsapp_pricing")
+// }
+
+// model WhatsappCallingRate {
+//   id           Int      @id @default(autoincrement())
+//   market       String   @db.VarChar(100)
+//   currency     String   @db.VarChar(10)
+//   from_minutes Int?
+//   to_minutes   Int?
+//   rate_type    String   @db.VarChar(20)
+//   rate         Decimal  @db.Decimal(10, 4)
+//   source_file  String?
+//   created_at   DateTime @default(now())
+//   updated_at   DateTime @updatedAt
+
+//   @@unique([market, currency, from_minutes, to_minutes])
+//   @@map("whatsapp_calling_rates")
+// }
+
+enum OtpStatus {
+  GENRERATED
+  VERIFIED
+  EXPIRED
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
