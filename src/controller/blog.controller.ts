@@ -1,7 +1,8 @@
 import { errorHandler, responseHandler } from "../lib/helper";
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
-import { stat } from "node:fs";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 
 const create = async (req: Request, res: Response) => {
   try {
@@ -224,7 +225,9 @@ const update = async (req: Request, res: Response) => {
     }
 
     if (rest.slug && rest.slug !== slug) {
-      const isSlugTaken = await prisma.blog.findUnique({ where: { slug: rest.slug } });
+      const isSlugTaken = await prisma.blog.findUnique({
+        where: { slug: rest.slug },
+      });
       if (isSlugTaken) {
         return responseHandler(
           res,
@@ -234,26 +237,32 @@ const update = async (req: Request, res: Response) => {
       }
     }
 
+    const oldImagePath = isBlogExist.image;
+    const newImagePath =
+      req.file?.path && req.file.path !== oldImagePath
+        ? req.file.path
+        : oldImagePath;
+    const shouldUpdateSeo = seo !== undefined && Object.keys(seo).length > 0;
+    const seoId = seo?.id || isBlogExist.seoId;
+
+    if (shouldUpdateSeo && seo?.id && seo.id !== isBlogExist.seoId) {
+      return responseHandler(
+        res,
+        { message: "SEO does not belong to this blog", status: false },
+        400,
+      );
+    }
+
+    if (shouldUpdateSeo && !seoId) {
+      return responseHandler(
+        res,
+        { message: "Seo id is required", status: false },
+        400,
+      );
+    }
+
     const isUpdate = await prisma.$transaction(async (tx) => {
-      if (req.body?.seo !== undefined && Object.keys(seo).length > 0) {
-        const seoId = seo?.id || isBlogExist.seoId;
-
-        if (seo?.id && seo.id !== isBlogExist.seoId) {
-          return responseHandler(
-            res,
-            { message: "SEO does not belong to this blog", status: false },
-            400,
-          );
-        }
-
-        if (!seoId) {
-          return responseHandler(
-            res,
-            { message: "Seo id is required", status: false },
-            400,
-          );
-        }
-
+      if (shouldUpdateSeo) {
         await tx.seo.update({
           where: {
             id: seoId,
@@ -272,6 +281,7 @@ const update = async (req: Request, res: Response) => {
         },
         data: {
           ...rest,
+          image: newImagePath,
           status: rest?.status?.toUpperCase(),
         },
       });
@@ -283,6 +293,9 @@ const update = async (req: Request, res: Response) => {
         { message: "Something went wrong", status: false },
         400,
       );
+    }
+    if (newImagePath !== oldImagePath) {
+      await deleteFile(oldImagePath);
     }
     return responseHandler(
       res,
@@ -322,6 +335,8 @@ const deleteB = async (req: Request, res: Response) => {
       },
     });
 
+    await deleteFile(isBlogExist.image);
+
     if (!isDelete) {
       return responseHandler(
         res,
@@ -338,5 +353,20 @@ const deleteB = async (req: Request, res: Response) => {
     errorHandler(e.message);
   }
 };
+async function deleteFile(filePath: string) {
+  try {
+    const resolvedPath = path.resolve(filePath);
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
 
+    if (!resolvedPath.startsWith(`${uploadsDir}${path.sep}`)) {
+      return;
+    }
+
+    await unlink(resolvedPath);
+  } catch (e: any) {
+    if (e?.code !== "ENOENT") {
+      console.error("Failed to delete file:", e.message);
+    }
+  }
+}
 export { create, all, byId, update, deleteB };

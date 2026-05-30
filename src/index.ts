@@ -126,11 +126,11 @@ const accessLogStream = createStream("access.log", {
 
 // ✅ Morgan MUST be first — before routes, cors, body-parser
 app.use(morgan("dev")); // console
-app.use(morgan("combined", { stream: accessLogStream })); // file
+// app.use(morgan("combined", { stream: accessLogStream })); // file
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use("/api/files", express.static(path.join(process.cwd(), "public")));
+// app.use("/api/files", express.static(path.join(process.cwd(), "public")));
 app.use("/api/uploads", express.static("uploads"));
 
 const corsConfig = {
@@ -160,10 +160,10 @@ const loginLimiter = rateLimit({
   statusCode: 429,
 });
 
-app.use("/api/enquiry", enquiryRoutes);
-app.use("/api/otp", otpRoutes);
+// app.use("/api/enquiry", enquiryRoutes);
+app.use("/api/otp", loginLimiter, otpRoutes);
 app.use("/api/blog", blogRoutes);
-app.use("/api/pricing", pricingRoutes);
+// app.use("/api/pricing", pricingRoutes);
 
 app.get("/", (req, res) => {
   return res.status(200).json({ message: "Welcome" });
@@ -185,5 +185,5 @@ const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-  console.log(`Logs writing to: ${logsDir}`);
+  // console.log(`Logs writing to: ${logsDir}`);
 });
