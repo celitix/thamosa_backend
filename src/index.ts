@@ -109,7 +109,6 @@ import { createStream } from "rotating-file-stream";
 import enquiryRoutes from "./routes/enquiry.router";
 import otpRoutes from "./routes/otp.router";
 import blogRoutes from "./routes/blog.router";
-import pricingRoutes from "./routes/pricing.router";
 
 const app = express();
 
@@ -163,7 +162,6 @@ const loginLimiter = rateLimit({
 // app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/otp", loginLimiter, otpRoutes);
 app.use("/api/blog", blogRoutes);
-// app.use("/api/pricing", pricingRoutes);
 
 app.get("/", (req, res) => {
   return res.status(200).json({ message: "Welcome" });
