@@ -5,6 +5,7 @@ import {
   byId,
   create,
   deleteB,
+  getBlogMetaData,
   update,
 } from "../controller/blog.controller";
 import { blogCreate, blogUpdate } from "../schema/blog.schema";
@@ -21,6 +22,7 @@ router.post(
   create,
 );
 router.get("/", all);
+router.get("/meta", getBlogMetaData);
 router.get("/:id", byId);
 router.put(
   "/update",

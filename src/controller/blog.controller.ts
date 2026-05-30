@@ -392,6 +392,7 @@ const deleteB = async (req: Request, res: Response) => {
     errorHandler(e.message);
   }
 };
+
 async function deleteFile(filePath: string) {
   try {
     const resolvedPath = path.resolve(filePath);
@@ -408,4 +409,23 @@ async function deleteFile(filePath: string) {
     }
   }
 }
-export { create, all, byId, update, deleteB };
+
+async function getBlogMetaData(req: Request, res: Response) {
+  const metaData = await prisma.blog.findMany({
+    select: {
+      title: true,
+      slug: true,
+    },
+  });
+
+  return responseHandler(
+    res,
+    {
+      message: "Blog Meta fetched successfully",
+      status: true,
+      metaData,
+    },
+    200,
+  );
+}
+export { create, all, byId, update, deleteB, getBlogMetaData };
