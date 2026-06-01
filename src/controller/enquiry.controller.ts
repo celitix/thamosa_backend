@@ -18,6 +18,7 @@ import {
   clearBookDemoEnquiries,
   saveEnquiryBookDemoFb,
   clearBookDemoFBEnquiries,
+  sendOtptoWhatsapp,
 } from "../lib/sendOtp";
 import axios from "axios";
 
@@ -198,7 +199,7 @@ const sendOtp = async (req: Request, res: Response) => {
       },
     });
 
-    const isSend = await sendOtptoSMS(
+    const isSend = await sendOtptoWhatsapp(
       appEnv == "dev" ? "123456" : otp,
       5,
       mobile,

@@ -51,6 +51,69 @@ export async function sendOtptoSMS(
   }
 }
 
+export async function sendOtptoWhatsapp(
+  otp: string,
+  ttl = 10,
+  mbno: string,
+  name = "",
+) {
+  try {
+    const payload = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: `91${mbno}`,
+      type: "template",
+      template: {
+        name: "otp",
+        language: {
+          code: "en",
+        },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {
+                type: "text",
+                text: otp,
+              },
+            ],
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: [
+              {
+                type: "text",
+                text: otp,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const res = await axios.post(
+      "https://api.celitix.com/wrapper/waba/message",
+      payload,
+      {
+        headers: {
+          key: process.env.API_KEY,
+          wabaNumber: process.env.WHATSAPP_NUMBER,
+        },
+      },
+    );
+
+    if (res?.data?.error?.type === "OAuthException") {
+      return false;
+    }
+
+    return true;
+  } catch (e: any) {
+    throw new Error(e.message);
+  }
+}
+
 export async function sendWhatsapp(data: any) {
   try {
     const payload = {
