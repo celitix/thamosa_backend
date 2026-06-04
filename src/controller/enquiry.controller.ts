@@ -11,7 +11,6 @@ import { Request, Response } from "express";
 import {
   saveEnquiry,
   clearEnquiries,
-  sendMail,
   sendWhatsapp,
   sendOtptoWhatsapp,
 } from "../lib/sendOtp";
@@ -53,21 +52,16 @@ const contact = async (req: Request, res: Response) => {
       message,
     });
 
-    // await sendWhatsapp({
-    //   name: `${firstName} ${lastName}`.trim(),
-    //   service: service,
-    //   mbno: mobile,
-    // });
+    await sendWhatsapp({
+      name: fullName,
+      checkInDate,
+      checkOutDate,
+      noOfGuests,
+      mobile,
+      email,
+      intrestedProperty,
+    });
 
-    // await sendMail({
-    //   name: `${firstName} ${lastName}`.trim(),
-    //   email,
-    //   phone: mobile,
-    //   message,
-    //   company: companyName,
-    //   service: service,
-    //   source,
-    // });
     return responseHandler(
       res,
       { message: "Enquiry created successfully", status: true },
@@ -113,9 +107,7 @@ const sendOtp = async (req: Request, res: Response) => {
 
     const isSend = await sendOtptoWhatsapp(
       appEnv == "dev" ? "123456" : otp,
-      5,
       mobile,
-      name || "user",
     );
 
     if (!isSend)

@@ -1,62 +1,9 @@
 import axios from "axios";
 import path from "path";
 import fs from "fs/promises";
-import nodemailer from "nodemailer";
 import moment from "moment-timezone";
 
-export async function sendOtptoSMS(
-  otp: string,
-  ttl = 10,
-  mbno: string,
-  name = "",
-) {
-  try {
-    const msg = `Dear ${name}, OTP to validate your mobile number on Celitix is: ${otp}. Valid for ${ttl} minutes.
-@celitix.com #${otp}`;
-    const message = encodeURIComponent(msg);
-
-    // console.log("msg", msg);
-
-    const paylod = {
-      listsms: [
-        {
-          sms: msg,
-          mobiles: mbno,
-          senderid: process.env.SENDERID,
-          tempid: process.env.TEMPLATE_ID,
-          entityid: process.env.ENTITY_ID,
-          unicode: "0",
-        },
-      ],
-    };
-
-    const headers = {
-      key: process.env.API_KEY,
-      "Content-Type": "application/json",
-    };
-    const res = await axios.post(
-      "https://api.celitix.com/rest/sms/sendsms",
-      paylod,
-      { headers },
-    );
-    // console.log("res", res);
-    const isSuccess = res?.data?.smslist?.sms?.status == "success";
-
-    if (!isSuccess) {
-      return false;
-    }
-    return true;
-  } catch (e: any) {
-    throw new Error(e.message);
-  }
-}
-
-export async function sendOtptoWhatsapp(
-  otp: string,
-  ttl = 10,
-  mbno: string,
-  name = "",
-) {
+export async function sendOtptoWhatsapp(otp: string, mbno: string) {
   try {
     const payload = {
       messaging_product: "whatsapp",
@@ -114,86 +61,135 @@ export async function sendOtptoWhatsapp(
   }
 }
 
-export async function sendWhatsapp(data: any) {
+export async function sendWhatsapp(data: {
+  name: string;
+  email: string;
+  mobile: string;
+  intrestedProperty: string;
+  checkInDate: string;
+  checkOutDate: string;
+  noOfGuests: string;
+}) {
+  const {
+    name,
+    checkInDate,
+    checkOutDate,
+    noOfGuests,
+    mobile,
+    email,
+    intrestedProperty,
+  } = data;
   try {
     const payload = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: `91${data.mbno}`,
-      type: "template",
       template: {
-        name: "enquiry_response",
-        language: {
-          code: "en",
-        },
         components: [
           {
-            type: "body",
+            type: "BODY",
             parameters: [
               {
-                type: "text", //name
-                text: data.name,
+                text: intrestedProperty,
+                type: "text",
               },
               {
-                type: "text", //service
-                text: data.service,
+                text: name,
+                type: "text",
+              },
+              {
+                text: email,
+                type: "text",
+              },
+              {
+                text: mobile,
+                type: "text",
+              },
+
+              {
+                text: checkInDate,
+                type: "text",
+              },
+              {
+                text: checkOutDate,
+                type: "text",
+              },
+              {
+                text: noOfGuests,
+                type: "text",
               },
             ],
           },
         ],
-      },
-    };
-
-    const res = await axios.post(
-      "https://api.celitix.com/wrapper/waba/message",
-      payload,
-      {
-        headers: {
-          key: process.env.API_KEY,
-          "Content-Type": "application/json",
-          wabaNumber: process.env.WHATSAPP_NUMBER,
+        name: "websiteinquiry",
+        language: {
+          code: "en",
+          policy: "deterministic",
         },
       },
-    );
-
-    if (res?.data?.error?.type === "OAuthException") {
-      return false;
-    }
-
-    return true;
-  } catch (e: any) {
-    throw new Error(e.message);
-  }
-}
-
-export async function sendMail(data: any) {
-  try {
-    const { name, email, phone, message, company, service, source } = data;
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.GMAIL_ID,
-        pass: process.env.GMAIL_PASSWORD,
-      },
-    });
-
-    var mailOptions = {};
-
-    mailOptions = {
-      from: "ads@proactivedigital.in",
-      to: "info@proactivedigital.in, sales@proactivesms.in, yogendra@proactivesms.in",
-      // to: "dummymail12hai@gmail.com",
-      subject: `Celitix ${data.source} Enquiry`,
-      html: `Name: ${name}<br>Email: ${email}<br>Phone: ${phone}<br>Message: ${message}<br>Company: ${company}<br>Service: ${service}`,
+      to: "919680149911",
+      type: "template",
+      messaging_product: "whatsapp",
     };
 
-    transporter.sendMail(mailOptions, function (error: any, info: any) {
-      if (error) {
-        return false;
-      } else {
-        return true;
-      }
-    });
+    const customerPayload = {
+      template: {
+        components: [
+          {
+            type: "BODY",
+            parameters: [
+              {
+                text: name,
+                type: "text",
+              },
+              {
+                text: intrestedProperty,
+                type: "text",
+              },
+              {
+                text: checkInDate,
+                type: "text",
+              },
+              {
+                text: checkOutDate,
+                type: "text",
+              },
+              {
+                text: noOfGuests,
+                type: "text",
+              },
+            ],
+          },
+        ],
+        name: "webinquiryresponse",
+        language: {
+          code: "en",
+          policy: "deterministic",
+        },
+      },
+      to: `91${mobile}`,
+      type: "template",
+      messaging_product: "whatsapp",
+    };
+
+    const config = {
+      headers: {
+        key: process.env.API_KEY,
+        wabaNumber: process.env.WHATSAPP_NUMBER,
+      },
+    };
+
+    const [customer, admin] = await Promise.all([
+      axios.post(
+        "https://api.celitix.com/wrapper/waba/message",
+        customerPayload,
+        config,
+      ),
+      axios.post(
+        "https://api.celitix.com/wrapper/waba/message",
+        payload,
+        config,
+      ),
+    ]);
+
+    return true;
   } catch (e: any) {
     throw new Error(e.message);
   }
