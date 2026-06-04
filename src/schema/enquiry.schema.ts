@@ -6,8 +6,8 @@ const contactEnquiry = z.object({
   mobile: z.string().min(10).max(10),
   intrestedProperty: z.string(),
 
-  checkInDate: z.coerce.date().optional(),
-  checkOutDate: z.coerce.date().optional(),
+  checkInDate: z.coerce.date(),
+  checkOutDate: z.coerce.date(),
   noOfGuests: z.number().min(1),
 
   message: z.string().max(30),
