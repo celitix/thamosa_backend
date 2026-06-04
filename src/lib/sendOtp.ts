@@ -199,108 +199,48 @@ export async function sendMail(data: any) {
   }
 }
 
-export async function saveEnquiry(data: any) {
+export async function saveEnquiry(data: {
+  name: string;
+  email: string;
+  mobile: string;
+  intrestedProperty: string;
+  checkInDate: string;
+  checkOutDate: string;
+  noOfGuests: string;
+  message: string;
+}) {
   try {
     const {
       name,
       email,
-      phone,
-      company,
-      service,
+      mobile,
+      intrestedProperty,
+      checkInDate,
+      checkOutDate,
+      noOfGuests,
       message,
-      source,
-      designation,
-      experience,
-      resumeUrl,
     } = data;
-
-    let fileUrl = "";
-
-    // const projectRoot = path.join(__dirname, "..");
-    // const uploadsDir = path.join(projectRoot, "uploads");
-    // await fs.mkdir(uploadsDir, { recursive: true });
-    // const buffer = await file.toBuffer();
 
     const dataFilePath = path.join(process.cwd(), "public/data.txt");
 
     const payload = {
       Name: name,
       Email: email,
-      Phone: phone,
-      Company: company || "N/A",
-      Service: service || "N/A",
+      Phone: mobile,
+      IntrestedProperty: intrestedProperty || "N/A",
+      checkInDate: moment(new Date(checkInDate))
+        .tz("Asia/Kolkata")
+        .format("YYYY-MM-DD HH:mm:ss"),
+      checkOutDate: moment(new Date(checkOutDate))
+        .tz("Asia/Kolkata")
+        .format("YYYY-MM-DD HH:mm:ss"),
       Message: message || "N/A",
+      noOfGuests: noOfGuests || 0,
       Timestamp: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss"),
-      Source: source || "Website",
-      Experience: experience || "N/A",
-      Designation: designation || "N/A",
-      resumeUrl: resumeUrl || "N/A",
     };
 
-    const textContent = `${payload.Name};${payload.Email};${payload.Phone};${payload.Company};${payload.Service};${payload.Message};${payload.Timestamp};${payload.Source};${payload.Experience};${payload.Designation};${payload.resumeUrl}`;
+    const textContent = `${payload.Name};${payload.Email};${payload.Phone};${payload.IntrestedProperty};${payload.checkInDate};${payload.checkOutDate};${payload.Message};${payload.noOfGuests};${payload.Timestamp}`;
 
-    await fs.appendFile(dataFilePath, textContent + "\n");
-
-    return true;
-  } catch (e: any) {
-    throw new Error(e.message);
-  }
-}
-
-export async function saveEnquiryBookDemo(data: any) {
-  try {
-    const { name, email, phone, company, service, message, source, utmData } =
-      data;
-
-    const dataFilePath = path.join(process.cwd(), "public/bookDemo.txt");
-
-    const payload = {
-      Name: name,
-      Email: email,
-      Phone: phone,
-      Company: company || "N/A",
-      Service: service || "N/A",
-      Message: message || "N/A",
-      Timestamp: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss"),
-      Source: source || "Website",
-      utm_source: utmData?.source || "N/A",
-      utm_medium: utmData?.medium || "N/A",
-      utm_campaign: utmData?.campaign || "N/A",
-      gclid: utmData?.gclid || "N/A",
-    };
-
-    const textContent = `${payload.Name};${payload.Email};${payload.Phone};${payload.Company};${payload.Service};${payload.Message};${payload.Timestamp};${payload.Source};${payload.utm_source};${payload.utm_medium};${payload.utm_campaign};${payload.gclid}`;
-    await fs.appendFile(dataFilePath, textContent + "\n");
-
-    return true;
-  } catch (e: any) {
-    throw new Error(e.message);
-  }
-}
-
-export async function saveEnquiryBookDemoFb(data: any) {
-  try {
-    const { name, email, phone, company, service, message, source, utmData } =
-      data;
-
-    const dataFilePath = path.join(process.cwd(), "public/bookDemofb.txt");
-
-    const payload = {
-      Name: name,
-      Email: email,
-      Phone: phone,
-      Company: company || "N/A",
-      Service: service || "N/A",
-      Message: message || "N/A",
-      Timestamp: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss"),
-      Source: source || "Website",
-      utm_source: utmData?.source || "N/A",
-      utm_medium: utmData?.medium || "N/A",
-      utm_campaign: utmData?.campaign || "N/A",
-      gclid: utmData?.gclid || "N/A",
-    };
-
-    const textContent = `${payload.Name};${payload.Email};${payload.Phone};${payload.Company};${payload.Service};${payload.Message};${payload.Timestamp};${payload.Source};${payload.utm_source};${payload.utm_medium};${payload.utm_campaign};${payload.gclid}`;
     await fs.appendFile(dataFilePath, textContent + "\n");
 
     return true;
@@ -312,26 +252,6 @@ export async function saveEnquiryBookDemoFb(data: any) {
 export async function clearEnquiries() {
   try {
     const dataFilePath = path.join(process.cwd(), "public/data.txt");
-    await fs.writeFile(dataFilePath, "");
-    return true;
-  } catch (e: any) {
-    throw new Error(e.message);
-  }
-}
-
-export async function clearBookDemoEnquiries() {
-  try {
-    const dataFilePath = path.join(process.cwd(), "public/bookDemo.txt");
-    await fs.writeFile(dataFilePath, "");
-    return true;
-  } catch (e: any) {
-    throw new Error(e.message);
-  }
-}
-
-export async function clearBookDemoFBEnquiries() {
-  try {
-    const dataFilePath = path.join(process.cwd(), "public/bookDemofb.txt");
     await fs.writeFile(dataFilePath, "");
     return true;
   } catch (e: any) {

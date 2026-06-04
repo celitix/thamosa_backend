@@ -7,44 +7,24 @@ datasource db {
   provider = "mysql"
 }
 
-// model User {
-//   id    String @id @default(uuid())
-//   name  String
-//   email String @unique
-// }
+model ContactEnquiry {
+  id       String @id @default(uuid())
+  fullName String @map("full_name")
+  email    String
 
-// model ContactEnquiry {
-//   id          String  @id @default(uuid())
-//   firstName   String  @map("first_name")
-//   lastName    String  @map("last_name")
-//   email       String
-//   mobile      String
-//   companyName String  @map("company_name")
-//   service     String
-//   message     String  @db.Text
-//   source      String? @default("contact")
+  mobile            String
+  intrestedProperty String @map("intrested_property")
 
-//   utmData   Json?
-//   createdAt DateTime @default(now()) @map("created_at")
+  checkInDate  DateTime @map("check_in_date")
+  checkOutDate DateTime @map("check_out_date")
+  noOfGuests   Int      @map("no_of_guest")
 
-//   @@map("contact_enquiries")
-// }
+  message String?
 
-// model CarreerEnquiry {
-//   id          String   @id @default(uuid())
-//   firstName   String   @map("first_name")
-//   lastName    String   @map("last_name")
-//   email       String
-//   mobile      String
-//   designation String
-//   expInYears  String   @map("experience_in_years")
-//   jobTitle    String
-//   resumeUrl   String
-//   message     String?  @db.Text
-//   createdAt   DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-//   @@map("carreer_enquiries")
-// }
+  @@map("contact_enquiries")
+}
 
 model Otp {
   id        String    @id @default(uuid())

@@ -7,156 +7,67 @@ import {
   verifyHash,
 } from "../lib/helper";
 import { prisma } from "../lib/prisma";
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import {
   saveEnquiry,
   clearEnquiries,
   sendMail,
-  sendOtptoSMS,
   sendWhatsapp,
-  saveEnquiryBookDemo,
-  clearBookDemoEnquiries,
-  saveEnquiryBookDemoFb,
-  clearBookDemoFBEnquiries,
   sendOtptoWhatsapp,
 } from "../lib/sendOtp";
-import axios from "axios";
 
 const contact = async (req: Request, res: Response) => {
   try {
     const {
-      firstName,
-      lastName,
+      fullName,
       email,
       mobile,
-      companyName,
-      service,
+      intrestedProperty,
+      checkInDate,
+      checkOutDate,
+      noOfGuests,
       message,
-      source,
-      utmData,
     } = req.body;
 
     await prisma.contactEnquiry.create({
       data: {
-        firstName,
-        lastName,
+        fullName,
         email,
         mobile,
-        companyName,
-        service,
-        message,
-        source,
-        utmData: utmData || null,
-      },
-    });
-
-    if (source == "lp-book-demo") {
-      await saveEnquiryBookDemo({
-        name: `${firstName} ${lastName}`.trim(),
-        email,
-        phone: mobile,
-        message,
-        company: companyName,
-        service: service,
-        source,
-        utmData,
-      });
-    } else if (source == "lp-book-demo-fb") {
-      await saveEnquiryBookDemoFb({
-        name: `${firstName} ${lastName}`.trim(),
-        email,
-        phone: mobile,
-        message,
-        company: companyName,
-        service: service,
-        source,
-        utmData,
-      });
-    } else {
-      await saveEnquiry({
-        name: `${firstName} ${lastName}`.trim(),
-        email,
-        phone: mobile,
-        message,
-        company: companyName,
-        service: service,
-        source,
-      });
-    }
-
-    await sendWhatsapp({
-      name: `${firstName} ${lastName}`.trim(),
-      service: service,
-      mbno: mobile,
-    });
-
-    await sendMail({
-      name: `${firstName} ${lastName}`.trim(),
-      email,
-      phone: mobile,
-      message,
-      company: companyName,
-      service: service,
-      source,
-    });
-    return responseHandler(
-      res,
-      { message: "Enquiry created successfully", status: true },
-      201,
-    );
-  } catch (e: any) {
-    errorHandler(e.message);
-  }
-};
-
-const career = async (req: Request, res: Response) => {
-  try {
-    const {
-      firstName,
-      lastName,
-      email,
-      mobile,
-      designation,
-      expInYears,
-      jobTitle,
-      message,
-    } = req.body;
-
-    const file = req.file;
-
-    if (!file) {
-      return responseHandler(
-        res,
-        { message: "No file uploaded", status: false },
-        400,
-      );
-    }
-
-    await prisma.carreerEnquiry.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        mobile,
-        designation,
-        expInYears,
-        jobTitle,
-        resumeUrl: file.path,
+        intrestedProperty,
+        checkInDate,
+        checkOutDate,
+        noOfGuests,
         message,
       },
     });
 
     await saveEnquiry({
-      name: `${firstName} ${lastName}`.trim(),
+      name: fullName,
       email,
-      phone: mobile,
+      mobile,
+      intrestedProperty,
+      checkInDate,
+      checkOutDate,
+      noOfGuests,
       message,
-      designation,
-      experience: expInYears,
-      resumeUrl: file.path,
-      source: "Career",
     });
 
+    // await sendWhatsapp({
+    //   name: `${firstName} ${lastName}`.trim(),
+    //   service: service,
+    //   mbno: mobile,
+    // });
+
+    // await sendMail({
+    //   name: `${firstName} ${lastName}`.trim(),
+    //   email,
+    //   phone: mobile,
+    //   message,
+    //   company: companyName,
+    //   service: service,
+    //   source,
+    // });
     return responseHandler(
       res,
       { message: "Enquiry created successfully", status: true },
@@ -188,7 +99,6 @@ const sendOtp = async (req: Request, res: Response) => {
 
     const appEnv = process.env.APP_ENV;
     const otp = generateOtp();
-    console.log("otp", otp);
     const hashedOtp = appEnv == "dev" ? await hash("123456") : await hash(otp);
 
     const savedOtp = await prisma.otp.create({
@@ -272,41 +182,6 @@ const verifyOtp = async (req: Request, res: Response) => {
   }
 };
 
-const turnstileVerify = async (req: Request, res: Response) => {
-  try {
-    const token = req.body.token;
-    const secretKey = process.env.CLOUDFLARE_SECRET_KEY as string;
-    const url = process.env.CLOUDFLARE_URL as string;
-
-    const paylaod = {
-      secret: secretKey,
-      response: token,
-    };
-
-    const response = await axios.post(url, paylaod, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response?.data?.success) {
-      return responseHandler(
-        res,
-        { message: "Invalid turnstile", status: false },
-        400,
-      );
-    }
-
-    return responseHandler(
-      res,
-      { message: "Turnstile verified successfully", status: true },
-      201,
-    );
-  } catch (e: any) {
-    errorHandler(e.message);
-  }
-};
-
 const clearData = async (req: Request, res: Response) => {
   try {
     await clearEnquiries();
@@ -319,38 +194,5 @@ const clearData = async (req: Request, res: Response) => {
     return responseHandler(res, { message: e.message, status: false }, 400);
   }
 };
-const clearBookDemo = async (req: Request, res: Response) => {
-  try {
-    await clearBookDemoEnquiries();
-    return responseHandler(
-      res,
-      { message: "Data cleared successfully", status: true },
-      200,
-    );
-  } catch (e: any) {
-    return responseHandler(res, { message: e.message, status: false }, 400);
-  }
-};
 
-const clearBookDemoFb = async (req: Request, res: Response) => {
-  try {
-    await clearBookDemoFBEnquiries();
-    return responseHandler(
-      res,
-      { message: "Data cleared successfully", status: true },
-      200,
-    );
-  } catch (e: any) {
-    return responseHandler(res, { message: e.message, status: false }, 400);
-  }
-};
-
-export {
-  contact,
-  career,
-  sendOtp,
-  verifyOtp,
-  turnstileVerify,
-  clearData,
-  clearBookDemo,
-};
+export { contact, sendOtp, verifyOtp, clearData };
