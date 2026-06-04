@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { BlogStatus } from "../../generated/prisma/enums";
+import cron from "node-cron";
 
 const blogListSelect = {
   id: true,
@@ -98,7 +99,7 @@ const create = async (req: Request, res: Response) => {
         category,
         scheduledAt: scheduledAt || null,
         tags,
-        publishedDate,
+        publishedDate: publishedDate || new Date(),
         status: status.toUpperCase(),
         image: req.file.path,
         seo: {
@@ -434,4 +435,21 @@ async function getBlogMetaData(req: Request, res: Response) {
     200,
   );
 }
+
+cron.schedule("* * * * *", async () => {
+  console.log("cron job running");
+  await prisma.blog.updateMany({
+    where: {
+      status: "SCHEDULED",
+      scheduledAt: {
+        lte: new Date(),
+      },
+    },
+    data: {
+      status: "PUBLISHED",
+      publishedDate: new Date(),
+    },
+  });
+});
+
 export { create, all, byId, update, deleteB, getBlogMetaData };
