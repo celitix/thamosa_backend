@@ -50,7 +50,7 @@ const getBlogStatus = (type: string) => {
 
 const create = async (req: Request, res: Response) => {
   try {
-    const {
+    let {
       title,
       slug,
       shortDesc,
@@ -60,6 +60,7 @@ const create = async (req: Request, res: Response) => {
       publishedDate,
       seo,
       status,
+      scheduledAt,
     } = req.body;
 
     if (!req.file) {
@@ -84,6 +85,10 @@ const create = async (req: Request, res: Response) => {
       );
     }
 
+    if (scheduledAt) {
+      status = BlogStatus.SCHEDULED;
+    }
+
     await prisma.blog.create({
       data: {
         title,
@@ -91,6 +96,7 @@ const create = async (req: Request, res: Response) => {
         shortDesc,
         content,
         category,
+        scheduledAt: scheduledAt || null,
         tags,
         publishedDate,
         status: status.toUpperCase(),

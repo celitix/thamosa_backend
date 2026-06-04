@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `blogs` ADD COLUMN `scheduled_at` DATETIME(3) NULL,
+    MODIFY `status` ENUM('DRAFT', 'PUBLISHED', 'SCHEDULED') NOT NULL DEFAULT 'DRAFT';

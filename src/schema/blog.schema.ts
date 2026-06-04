@@ -20,6 +20,7 @@ const blogCreate = z.object({
   category: z.string().min(5),
   tags: z.string().min(1),
   publishedDate: z.coerce.date().optional(),
+  scheduledAt: z.coerce.date().optional(),
 
   seo: z.preprocess(
     parseJsonField,
@@ -29,7 +30,7 @@ const blogCreate = z.object({
       keywords: z.string().min(1),
     }),
   ),
-  status: z.enum(["draft", "published"]).default("draft"),
+  status: z.enum(["draft", "published", "scheduled"]).default("draft"),
 });
 
 const blogUpdate = blogCreate.partial().extend({
