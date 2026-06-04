@@ -230,7 +230,7 @@ const byId = async (req: Request, res: Response) => {
 
 const update = async (req: Request, res: Response) => {
   try {
-    const { id: slug, seo, ...rest } = req.body;
+    let { id: slug, seo, ...rest } = req.body;
 
     const isBlogExist = await prisma.blog.findUnique({
       where: { slug },
@@ -312,6 +312,11 @@ const update = async (req: Request, res: Response) => {
         });
       }
 
+      let status = rest.status?.toUpperCase();
+
+      if (rest?.scheduledAt) {
+        status = BlogStatus.SCHEDULED;
+      }
       const isUpdate = await tx.blog.update({
         where: {
           slug,
@@ -319,7 +324,7 @@ const update = async (req: Request, res: Response) => {
         data: {
           ...rest,
           image: newImagePath,
-          status: rest?.status?.toUpperCase(),
+          status,
         },
       });
       return isUpdate;
