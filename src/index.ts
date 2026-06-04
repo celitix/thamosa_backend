@@ -63,7 +63,7 @@ const loginLimiter = rateLimit({
   statusCode: 429,
 });
 
-// app.use("/api/enquiry", enquiryRoutes);
+app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/otp", loginLimiter, otpRoutes);
 app.use("/api/blog", blogRoutes);
 

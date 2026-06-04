@@ -89,6 +89,8 @@ const sendOtp = async (req: Request, res: Response) => {
       },
     });
 
+    console.log("mobile", mobile);
+
     if (type == "auth" && !isUserExist) {
       return responseHandler(
         res,

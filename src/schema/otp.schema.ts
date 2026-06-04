@@ -3,7 +3,6 @@ import { z } from "zod";
 const sendOtpSchema = z.object({
   mobile: z.string().min(10).max(10),
   type: z.string().optional(),
-  name: z.string()
 });
 
 const verifyOtpSchema = z.object({
